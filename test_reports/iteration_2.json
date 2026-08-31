@@ -1,0 +1,35 @@
+{
+  "summary": "Retested ClearDesk after functional-buttons iteration. Backend: 8/8 pytest cases pass (GET /api/dashboard shape, PATCH /api/docket/{id} success + persistence + 422 + unknown id, plus /api/status sanity). Frontend Playwright: all sidebar buttons switch view and gain active styling (nav-docket, nav-projects, nav-contracts, nav-people, nav-settings); each workspace view primary action, refresh, and card click render the correct action-notice; top utility actions (help, notifications, workspace-switch, project-picker, view-insight-button) each show a matching notice; profile-button navigates to settings; export-docket triggers CSV download; docket-search-input binds to filter (Marlowe -> 1 item); filter-urgent narrows to 1 item; docket-item selects detail; open-contract-button, detail-more-button, and download-attachment work; draft-reply and mark-reviewed PATCH backend and update status. Mobile (390px): no horizontal overflow, open-mobile-nav shows sidebar at x=0 after transition, nav-projects works from mobile sidebar, close-mobile-nav and backdrop both close the sidebar. Only failures observed in run 1 were test-wrapper artifacts (lambdas returning None); re-run in isolation confirmed all 28 flows pass. No regressions.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PATCH /api/docket/{id}", "issue": "Unknown id currently returns 404 via HTTPException — matches convention. Note: SEED_DOCKET remains a module-level list; state persists in-process only and is shared across clients (demo-scope acceptable)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Mobile nav (<=700px)", "issues": ["Backdrop (z-index 3) sits below the sidebar (z-index 4); tapping the backdrop area beside the sidebar closes it correctly, but taps that overlap the sidebar will not. Cosmetic only."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "App.js is a single dense file mixing state, layout, sub-components, CSV export, and notice logic. Consider splitting into components/ (Sidebar, Topbar, WorkspaceView, Detail, DocketList) and utils/ to improve maintainability.",
+    "axios PATCH errors are only console.error'd; user gets no feedback if the docket update fails. Consider surfacing an error notice via the existing notify() channel.",
+    "The utility notice uses a single string with a 3.2s setTimeout that can race with rapid clicks; state is fine for demo but a queue/toast library would be more robust.",
+    "SEED_DOCKET mutation is not persisted to Mongo; on backend restart demo state resets and PATCH state can leak across clients. Fine for demo, must be replaced before live mailbox integration."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "None (no sign-in demo).",
+  "seed_data_creation": "One TEST_pytest StatusCheck row inserted by test_create_and_list_status; no other data created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest at /app/backend/tests/backend_test.py — all 8 tests pass. Frontend App.js is a single file; use data-testid selectors: nav-{docket,projects,contracts,people,settings}, {view}-view, {view}-primary-action, {view}-refresh-button, {view}-card-<slug>, help-button, notifications-button, workspace-switch, project-picker, view-insight-button, profile-button, export-docket-button, docket-search-input, filter-<slug>, docket-item-<id>, correspondence-detail, open-contract-button, detail-more-button, download-attachment-button, draft-reply-button, mark-reviewed-button, open-mobile-nav, close-mobile-nav, mobile-nav-backdrop, main-sidebar, action-notice, detail-action-notice. Mobile: wait ~500ms after open-mobile-nav for CSS transition before clicking nav items. Notice auto-hides after 3.2s.",
+  "rca of the issue": "No blocking issues. Run-1 lambda wrappers that returned None caused false FAILs (7 items); re-run confirmed all flows pass."
+}
